@@ -466,7 +466,6 @@ const char *bootdelay_process(void)
 
 #if defined(is_boot_from_usb)
 	if (is_boot_from_usb() && env_get("bootcmd_mfg")) {
-		disconnect_from_pc();
 		printf("Boot from USB for mfgtools\n");
 		bootdelay = 0;
 		env_set_default("Use default environment for \

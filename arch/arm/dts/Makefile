@@ -1175,13 +1175,7 @@ dtb-$(CONFIG_ARCH_IMX8M) += \
 	imx8mq-librem5-r4.dtb
 
 dtb-$(CONFIG_ARCH_IMX9) += \
-	imx93-11x11-evk.dtb \
-	imx93-14x14-evk.dtb \
-	imx93-9x9-qsb.dtb \
-	imx93-9x9-qsb-ontat-wvga-panel.dtb \
-	imx91p-11x11-evk.dtb \
-	imx91p-9x9-qsb-ontat-wvga-panel.dtb \
-	imx91p-9x9-qsb-spinand.dtb
+	imx93-var-som-symphony.dtb
 
 dtb-$(CONFIG_ARCH_IMXRT) += imxrt1050-evk.dtb \
 	imxrt1020-evk.dtb \

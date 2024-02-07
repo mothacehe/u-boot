@@ -155,11 +155,6 @@
 	};
 };
 
-&lcdif {
-	status = "okay";
-	assigned-clock-rates = <484000000>, <121000000>, <400000000>, <133333333>;
-};
-
 &lpi2c1 {
 	#address-cells = <1>;
 	#size-cells = <0>;
@@ -221,25 +216,6 @@
 &lpuart1 { /* console */
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart1>;
-	status = "okay";
-};
-
-&usbotg1 {
-	dr_mode = "otg";
-	extcon = <&ptn5150>;
-	hnp-disable;
-	srp-disable;
-	adp-disable;
-	disable-over-current;
-	status = "okay";
-};
-
-&usbotg2 {
-	dr_mode = "host";
-	hnp-disable;
-	srp-disable;
-	adp-disable;
-	disable-over-current;
 	status = "okay";
 };
 

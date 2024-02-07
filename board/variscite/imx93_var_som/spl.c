@@ -14,6 +14,7 @@
 #include <spl.h>
 #include <asm/global_data.h>
 #include <asm/io.h>
+#include <asm/sections.h>
 #include <asm/arch/imx93_pins.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/sys_proto.h>
@@ -38,6 +39,8 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#define PCA9450_REG_PWRCTRL_TOFF_DEB    BIT(5)
+
 static struct var_eeprom eeprom = {0};
 
 int spl_board_boot_device(enum boot_device boot_dev_spl)
@@ -52,7 +55,7 @@ void spl_board_init(void)
 
 	puts("Normal Boot\n");
 
-	ret = ahab_start_rng();
+	ret = ele_start_rng();
 	if (ret)
 		printf("Fail to start RNG: %d\n", ret);
 

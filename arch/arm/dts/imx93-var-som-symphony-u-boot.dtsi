@@ -16,36 +16,12 @@
 		ethernet1 = &fec;
 	};
 
-	usbg1: usbg1 {
-		compatible = "fsl,imx27-usb-gadget";
-		dr_mode = "peripheral";
-		chipidea,usb = <&usbotg1>;
-		status = "okay";
-	};
-
-	usbg2: usbg2 {
-		compatible = "fsl,imx27-usb-gadget";
-		dr_mode = "peripheral";
-		chipidea,usb = <&usbotg2>;
-		status = "okay";
-	};
-
 	firmware {
 		optee {
 			compatible = "linaro,optee-tz";
 			method = "smc";
 		};
 	};
-};
-
-&usbotg1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <>;
-};
-
-&usbotg2 {
-	pinctrl-names = "default";
-	pinctrl-0 = <>;
 };
 
 &{/soc@0} {
@@ -158,10 +134,4 @@
 &clk_ext1 {
 	u-boot,dm-pre-reloc;
 	u-boot,dm-spl;
-};
-
-&lcdif {
-	assigned-clocks = <&clk IMX93_CLK_MEDIA_AXI>, <&clk IMX93_CLK_MEDIA_APB>;
-	assigned-clock-parents = <&clk IMX93_CLK_SYS_PLL_PFD1>, <&clk IMX93_CLK_SYS_PLL_PFD1_DIV2>;
-	assigned-clock-rates = <400000000>, <133333334>;
 };

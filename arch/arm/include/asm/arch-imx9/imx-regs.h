@@ -253,9 +253,6 @@ struct src_mix_slice_regs {
 	u32 func_stat;
 };
 
-bool is_usb_boot(void);
-void disconnect_from_pc(void);
-#define is_boot_from_usb  is_usb_boot
 
 #endif
 
