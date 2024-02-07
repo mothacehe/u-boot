@@ -22,14 +22,29 @@
 #include <asm/global_data.h>
 #include <asm/mach-imx/dma.h>
 #include <asm/io.h>
+#include <reset.h>
+#include <panel.h>
+#include <video_bridge.h>
+#include <video_link.h>
+#include <display.h>
 
 #include "videomodes.h"
+#include <dm/device-internal.h>
+
+#ifdef CONFIG_VIDEO_GIS
+#include <gis.h>
+#endif
 
 #define	PS2KHZ(ps)	(1000000000UL / (ps))
 #define HZ2PS(hz)	(1000000000UL / ((hz) / 1000))
 
 #define BITS_PP		18
 #define BYTES_PP	4
+
+struct mxsfb_priv {
+	fdt_addr_t reg_base;
+	struct udevice *disp_dev;
+};
 
 struct mxs_dma_desc desc;
 
@@ -57,9 +72,10 @@ __weak void mxsfb_system_setup(void)
  */
 
 static void mxs_lcd_init(struct udevice *dev, u32 fb_addr,
-			 struct display_timing *timings, int bpp)
+			 struct display_timing *timings, int bpp, bool bridge)
 {
-	struct mxs_lcdif_regs *regs = (struct mxs_lcdif_regs *)MXS_LCDIF_BASE;
+	struct mxsfb_priv *priv = dev_get_priv(dev);
+	struct mxs_lcdif_regs *regs = (struct mxs_lcdif_regs *)priv->reg_base;
 	const enum display_flags flags = timings->flags;
 	uint32_t word_len = 0, bus_width = 0;
 	uint8_t valid_data = 0;
@@ -110,7 +126,7 @@ static void mxs_lcd_init(struct udevice *dev, u32 fb_addr,
 	}
 #else
 	/* Kick in the LCDIF clock */
-	mxs_set_lcdclk(MXS_LCDIF_BASE, timings->pixelclock.typ / 1000);
+	mxs_set_lcdclk(priv->reg_base, timings->pixelclock.typ / 1000);
 #endif
 
 	/* Restart the LCDIF block */
@@ -146,12 +162,15 @@ static void mxs_lcd_init(struct udevice *dev, u32 fb_addr,
 	writel(valid_data << LCDIF_CTRL1_BYTE_PACKING_FORMAT_OFFSET,
 		&regs->hw_lcdif_ctrl1);
 
+	if (bridge)
+		writel(LCDIF_CTRL2_OUTSTANDING_REQS_REQ_16, &regs->hw_lcdif_ctrl2);
+
 	mxsfb_system_setup();
 
 	writel((timings->vactive.typ << LCDIF_TRANSFER_COUNT_V_COUNT_OFFSET) |
 		timings->hactive.typ, &regs->hw_lcdif_transfer_count);
 
-	vdctrl0 = LCDIF_VDCTRL0_ENABLE_PRESENT | LCDIF_VDCTRL0_ENABLE_POL |
+	vdctrl0 = LCDIF_VDCTRL0_ENABLE_PRESENT |
 		  LCDIF_VDCTRL0_VSYNC_PERIOD_UNIT |
 		  LCDIF_VDCTRL0_VSYNC_PULSE_WIDTH_UNIT |
 		  timings->vsync_len.typ;
@@ -199,10 +218,10 @@ static void mxs_lcd_init(struct udevice *dev, u32 fb_addr,
 }
 
 static int mxs_probe_common(struct udevice *dev, struct display_timing *timings,
-			    int bpp, u32 fb)
+			    int bpp, u32 fb, bool bridge)
 {
 	/* Start framebuffer */
-	mxs_lcd_init(dev, fb, timings, bpp);
+	mxs_lcd_init(dev, fb, timings, bpp, bridge);
 
 #ifdef CONFIG_VIDEO_MXS_MODE_SYSTEM
 	/*
@@ -213,7 +232,8 @@ static int mxs_probe_common(struct udevice *dev, struct display_timing *timings,
 	 * sets the RUN bit, then waits until it gets cleared and repeats this
 	 * infinitelly. This way, we get smooth continuous updates of the LCD.
 	 */
-	struct mxs_lcdif_regs *regs = (struct mxs_lcdif_regs *)MXS_LCDIF_BASE;
+	struct mxsfb_priv *priv = dev_get_priv(dev);
+	struct mxs_lcdif_regs *regs = (struct mxs_lcdif_regs *)priv->reg_base;
 
 	memset(&desc, 0, sizeof(struct mxs_dma_desc));
 	desc.address = (dma_addr_t)&desc;
@@ -230,10 +250,15 @@ static int mxs_probe_common(struct udevice *dev, struct display_timing *timings,
 	return 0;
 }
 
-static int mxs_remove_common(u32 fb)
+static int mxs_remove_common(phys_addr_t reg_base, u32 fb)
 {
-	struct mxs_lcdif_regs *regs = (struct mxs_lcdif_regs *)MXS_LCDIF_BASE;
+	struct mxs_lcdif_regs *regs = (struct mxs_lcdif_regs *)(reg_base);
 	int timeout = 1000000;
+
+	if (CONFIG_IS_ENABLED(IMX_MODULE_FUSE)) {
+		if (check_module_fused(MODULE_LCDIF))
+			return -ENODEV;
+	}
 
 	if (!fb)
 		return -EINVAL;
@@ -259,6 +284,7 @@ static int mxs_of_get_timings(struct udevice *dev,
 	int ret = 0;
 	u32 display_phandle;
 	ofnode display_node;
+	struct mxsfb_priv *priv = dev_get_priv(dev);
 
 	ret = ofnode_read_u32(dev_ofnode(dev), "display", &display_phandle);
 	if (ret) {
@@ -279,10 +305,19 @@ static int mxs_of_get_timings(struct udevice *dev,
 		return -EINVAL;
 	}
 
-	ret = ofnode_decode_display_timing(display_node, 0, timings);
-	if (ret) {
-		dev_err(dev, "failed to get any display timings\n");
-		return -EINVAL;
+	priv->disp_dev = video_link_get_next_device(dev);
+	if (priv->disp_dev) {
+		ret = video_link_get_display_timings(timings);
+		if (ret) {
+			dev_err(dev, "failed to get any video link display timings\n");
+			return -EINVAL;
+		}
+	} else {
+		ret = ofnode_decode_display_timing(display_node, 0, timings);
+		if (ret) {
+			dev_err(dev, "failed to get any display timings\n");
+			return -EINVAL;
+		}
 	}
 
 	return ret;
@@ -292,22 +327,86 @@ static int mxs_video_probe(struct udevice *dev)
 {
 	struct video_uc_plat *plat = dev_get_uclass_plat(dev);
 	struct video_priv *uc_priv = dev_get_uclass_priv(dev);
+	struct mxsfb_priv *priv = dev_get_priv(dev);
 
 	struct display_timing timings;
 	u32 bpp = 0;
 	u32 fb_start, fb_end;
 	int ret;
+	bool enable_bridge = false;
 
 	debug("%s() plat: base 0x%lx, size 0x%x\n",
 	       __func__, plat->base, plat->size);
 
+	priv->reg_base = dev_read_addr(dev);
+	if (priv->reg_base == FDT_ADDR_T_NONE) {
+		dev_err(dev, "lcdif base address is not found\n");
+		return -EINVAL;
+	}
+
 	ret = mxs_of_get_timings(dev, &timings, &bpp);
 	if (ret)
 		return ret;
+	timings.flags |= DISPLAY_FLAGS_DE_HIGH;
 
-	ret = mxs_probe_common(dev, &timings, bpp, plat->base);
+	if (CONFIG_IS_ENABLED(IMX_MODULE_FUSE)) {
+		if (check_module_fused(MODULE_LCDIF)) {
+			printf("LCDIF@0x%lx is fused, disable it\n", (ulong)priv->reg_base);
+			return -ENODEV;
+		}
+	}
+
+	if (priv->disp_dev) {
+#if IS_ENABLED(CONFIG_DISPLAY)
+		if (device_get_uclass_id(priv->disp_dev) == UCLASS_DISPLAY) {
+			ret = display_enable(priv->disp_dev, bpp, &timings);
+			if (ret) {
+				dev_err(dev, "fail to enable display\n");
+				return ret;
+			}
+		}
+#endif
+
+#if IS_ENABLED(CONFIG_VIDEO_BRIDGE)
+		if (device_get_uclass_id(priv->disp_dev) == UCLASS_VIDEO_BRIDGE) {
+			ret = video_bridge_attach(priv->disp_dev);
+			if (ret) {
+				dev_err(dev, "fail to attach bridge\n");
+				return ret;
+			}
+
+			ret = video_bridge_set_backlight(priv->disp_dev, 80);
+			if (ret) {
+				dev_err(dev, "fail to set backlight\n");
+				return ret;
+			}
+
+			enable_bridge = true;
+
+			/* sec dsim needs enable ploarity at low, default we set to high */
+			if (!strcmp(priv->disp_dev->driver->name, "imx_sec_dsim"))
+				timings.flags &= ~DISPLAY_FLAGS_DE_HIGH;
+
+		}
+#endif
+		if (device_get_uclass_id(priv->disp_dev) == UCLASS_PANEL) {
+			ret = panel_enable_backlight(priv->disp_dev);
+			if (ret) {
+				dev_err(dev, "panel %s enable backlight error %d\n",
+					priv->disp_dev->name, ret);
+				return ret;
+			}
+		}
+	}
+
+	ret = mxs_probe_common(dev, &timings, bpp, plat->base, enable_bridge);
 	if (ret)
 		return ret;
+
+#ifdef CONFIG_VIDEO_GIS
+	/* Entry for GIS */
+	mxc_enable_gis();
+#endif
 
 	switch (bpp) {
 	case 32:
@@ -330,9 +429,9 @@ static int mxs_video_probe(struct udevice *dev)
 	uc_priv->ysize = timings.vactive.typ;
 
 	/* Enable dcache for the frame buffer */
-	fb_start = plat->base & ~(MMU_SECTION_SIZE - 1);
+	fb_start = plat->base;
 	fb_end = plat->base + plat->size;
-	fb_end = ALIGN(fb_end, 1 << MMU_SECTION_SHIFT);
+
 	mmu_set_region_dcache_behaviour(fb_start, fb_end - fb_start,
 					DCACHE_WRITEBACK);
 	video_set_flush_dcache(dev, true);
@@ -344,33 +443,10 @@ static int mxs_video_probe(struct udevice *dev)
 static int mxs_video_bind(struct udevice *dev)
 {
 	struct video_uc_plat *plat = dev_get_uclass_plat(dev);
-	struct display_timing timings;
-	u32 bpp = 0;
-	u32 bytes_pp = 0;
-	int ret;
 
-	ret = mxs_of_get_timings(dev, &timings, &bpp);
-	if (ret)
-		return ret;
-
-	switch (bpp) {
-	case 32:
-	case 24:
-	case 18:
-		bytes_pp = 4;
-		break;
-	case 16:
-		bytes_pp = 2;
-		break;
-	case 8:
-		bytes_pp = 1;
-		break;
-	default:
-		dev_err(dev, "invalid bpp specified (bpp = %i)\n", bpp);
-		return -EINVAL;
-	}
-
-	plat->size = timings.hactive.typ * timings.vactive.typ * bytes_pp;
+	/* Max size supported by LCDIF, because in bind, we can't probe panel */
+	plat->size = ALIGN(1920 * 1080 *4 * 2, MMU_SECTION_SIZE);
+	plat->align = MMU_SECTION_SIZE;
 
 	return 0;
 }
@@ -378,8 +454,14 @@ static int mxs_video_bind(struct udevice *dev)
 static int mxs_video_remove(struct udevice *dev)
 {
 	struct video_uc_plat *plat = dev_get_uclass_plat(dev);
+	struct mxsfb_priv *priv = dev_get_priv(dev);
 
-	mxs_remove_common(plat->base);
+	debug("%s\n", __func__);
+
+	if (priv->disp_dev)
+		device_remove(priv->disp_dev, DM_REMOVE_NORMAL);
+
+	mxs_remove_common(priv->reg_base, plat->base);
 
 	return 0;
 }
@@ -389,6 +471,8 @@ static const struct udevice_id mxs_video_ids[] = {
 	{ .compatible = "fsl,imx28-lcdif" },
 	{ .compatible = "fsl,imx7ulp-lcdif" },
 	{ .compatible = "fsl,imxrt-lcdif" },
+	{ .compatible = "fsl,imx8mm-lcdif" },
+	{ .compatible = "fsl,imx8mn-lcdif" },
 	{ /* sentinel */ }
 };
 
@@ -400,4 +484,5 @@ U_BOOT_DRIVER(mxs_video) = {
 	.probe	= mxs_video_probe,
 	.remove = mxs_video_remove,
 	.flags	= DM_FLAG_PRE_RELOC | DM_FLAG_OS_PREPARE,
+	.priv_auto   = sizeof(struct mxsfb_priv),
 };

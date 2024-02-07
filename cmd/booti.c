@@ -16,6 +16,10 @@
 #include <linux/kernel.h>
 #include <linux/sizes.h>
 
+#ifdef CONFIG_IMX_MATTER_TRUSTY
+#include <trusty/libtipc.h>
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 /*
  * Image booting support
@@ -77,6 +81,16 @@ static int booti_start(struct cmd_tbl *cmdtp, int flag, int argc,
 	ret = booti_setup(ld, &relocated_addr, &image_size, false);
 	if (ret != 0)
 		return 1;
+
+#if defined(CONFIG_IMX_HAB) && !defined(CONFIG_AVB_SUPPORT)
+	extern int authenticate_image(
+		uint32_t ddr_start, uint32_t raw_image_size);
+	if (authenticate_image(ld, image_size) != 0) {
+		printf("Authenticate Image Fail, Please check\n");
+		return 1;
+	}
+
+#endif
 
 	/* Handle BOOTM_STATE_LOADOS */
 	if (relocated_addr != ld) {

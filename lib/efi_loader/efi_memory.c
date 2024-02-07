@@ -513,6 +513,9 @@ efi_status_t efi_allocate_pages(enum efi_allocate_type type,
 	    (len >> EFI_PAGE_SHIFT) != (u64)pages)
 		return EFI_OUT_OF_RESOURCES;
 
+	if (!pages)
+		return EFI_INVALID_PARAMETER;
+
 	switch (type) {
 	case EFI_ALLOCATE_ANY_PAGES:
 		/* Any page */

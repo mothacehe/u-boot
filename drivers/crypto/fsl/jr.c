@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright 2008-2014 Freescale Semiconductor, Inc.
- * Copyright 2018, 2021 NXP
+ * Copyright 2018, 2021-2022 NXP
  *
  * Based on CAAM driver in drivers/crypto/caam in Linux
  */
@@ -44,9 +44,17 @@ struct udevice *caam_dev;
 #define SEC_ADDR(idx)	\
 	(ulong)((CFG_SYS_FSL_SEC_ADDR + sec_offset[idx]))
 
-#define SEC_JR0_ADDR(idx)	\
+#ifndef CONFIG_IMX8M
+#define SEC_JR_ADDR(idx)	\
 	(ulong)(SEC_ADDR(idx) +	\
 	 (CFG_SYS_FSL_JR0_OFFSET - CFG_SYS_FSL_SEC_OFFSET))
+#define JR_ID 0
+#else
+#define SEC_JR_ADDR(idx)	\
+	(ulong)(SEC_ADDR(idx) + \
+	 (CFG_SYS_FSL_JR1_OFFSET - CFG_SYS_FSL_SEC_OFFSET))
+#define JR_ID 1
+#endif
 struct caam_regs caam_st;
 #endif
 
@@ -589,6 +597,115 @@ static u8 get_rng_vid(ccsr_sec_t *sec)
 	return vid;
 }
 
+#if defined(CONFIG_ARCH_IMX8M) || defined(CONFIG_ARCH_MX7ULP) || \
+	defined(CONFIG_ARCH_MX6) || defined(CONFIG_ARCH_MX7) || defined(CONFIG_ARCH_IMX8ULP)
+
+static void kick_trng(u32 ent_delay, ccsr_sec_t *sec)
+{
+	u32 samples  = 512; /* number of bits to generate and test */
+	u32 mono_min = 195;
+	u32 mono_max = 317;
+	u32 mono_range  = mono_max - mono_min;
+	u32 poker_min = 1031;
+	u32 poker_max = 1600;
+	u32 poker_range = poker_max - poker_min + 1;
+	u32 retries    = 2;
+	u32 lrun_max   = 32;
+	s32 run_1_min   = 27;
+	s32 run_1_max   = 107;
+	s32 run_1_range = run_1_max - run_1_min;
+	s32 run_2_min   = 7;
+	s32 run_2_max   = 62;
+	s32 run_2_range = run_2_max - run_2_min;
+	s32 run_3_min   = 0;
+	s32 run_3_max   = 39;
+	s32 run_3_range = run_3_max - run_3_min;
+	s32 run_4_min   = -1;
+	s32 run_4_max   = 26;
+	s32 run_4_range = run_4_max - run_4_min;
+	s32 run_5_min   = -1;
+	s32 run_5_max   = 18;
+	s32 run_5_range = run_5_max - run_5_min;
+	s32 run_6_min   = -1;
+	s32 run_6_max   = 17;
+	s32 run_6_range = run_6_max - run_6_min;
+	u32 val;
+
+	struct rng4tst __iomem *rng =
+			(struct rng4tst __iomem *)&sec->rng;
+
+	/* Put RNG in program mode */
+	/* Setting both RTMCTL:PRGM and RTMCTL:TRNG_ACC causes TRNG to
+	 * properly invalidate the entropy in the entropy register and
+	 * force re-generation.
+	 */
+	sec_setbits32(&rng->rtmctl, RTMCTL_PRGM | RTMCTL_ACC);
+
+	/* Configure the RNG Entropy Delay
+	 * Performance-wise, it does not make sense to
+	 * set the delay to a value that is lower
+	 * than the last one that worked (i.e. the state handles
+	 * were instantiated properly. Thus, instead of wasting
+	 * time trying to set the values controlling the sample
+	 * frequency, the function simply returns.
+	 */
+	val = sec_in32(&rng->rtsdctl);
+	val &= RTSDCTL_ENT_DLY_MASK;
+	val >>= RTSDCTL_ENT_DLY_SHIFT;
+	if (ent_delay < val) {
+		/* Put RNG4 into run mode */
+		sec_clrbits32(&rng->rtmctl, RTMCTL_PRGM | RTMCTL_ACC);
+		return;
+	}
+
+	val = (ent_delay << RTSDCTL_ENT_DLY_SHIFT) | samples;
+	sec_out32(&rng->rtsdctl, val);
+
+	/*
+	 * Recommended margins (min,max) for freq. count:
+	 *   freq_mul = RO_freq / TRNG_clk_freq
+	 *   rtfrqmin = (ent_delay x freq_mul) >> 1;
+	 *   rtfrqmax = (ent_delay x freq_mul) << 3;
+	 * Given current deployments of CAAM in i.MX SoCs, and to simplify
+	 * the configuration, we consider [1,16] to be a safe interval
+	 * for the freq_mul and the limits of the interval are used to compute
+	 * rtfrqmin, rtfrqmax
+	 */
+	sec_out32(&rng->rtfreqmin, ent_delay >> 1);
+	sec_out32(&rng->rtfreqmax, ent_delay << 7);
+
+	sec_out32(&rng->rtscmisc, (retries << 16) | lrun_max);
+	sec_out32(&rng->rtpkrmax, poker_max);
+	sec_out32(&rng->rtpkrrng, poker_range);
+	sec_out32(&rng->rsvd1[0], (mono_range << 16) | mono_max);
+	sec_out32(&rng->rsvd1[1], (run_1_range << 16) | run_1_max);
+	sec_out32(&rng->rsvd1[2], (run_2_range << 16) | run_2_max);
+	sec_out32(&rng->rsvd1[3], (run_3_range << 16) | run_3_max);
+	sec_out32(&rng->rsvd1[4], (run_4_range << 16) | run_4_max);
+	sec_out32(&rng->rsvd1[5], (run_5_range << 16) | run_5_max);
+	sec_out32(&rng->rsvd1[6], (run_6_range << 16) | run_6_max);
+
+	val = sec_in32(&rng->rtmctl);
+	/*
+	 * Select raw sampling in both entropy shifter
+	 * and statistical checker
+	 */
+	val &= ~RTMCTL_SAMP_MODE_INVALID;
+	val |= RTMCTL_SAMP_MODE_RAW_ES_SC;
+	/* Put RNG4 into run mode */
+	val &= ~(RTMCTL_PRGM | RTMCTL_ACC);
+	/*test with sample mode only */
+	sec_out32(&rng->rtmctl, val);
+
+	/* Clear the ERR bit in RTMCTL if set. The TRNG error can occur when the
+	 * RNG clock is not within 1/2x to 8x the system clock.
+	 * This error is possible if ROM code does not initialize the system PLLs
+	 * immediately after PoR.
+	 */
+	/* setbits_le32(CAAM_RTMCTL, RTMCTL_ERR); */
+}
+
+#else
 /*
  * By default, the TRNG runs for 200 clocks per sample;
  * 1200 clocks per sample generates better entropy.
@@ -620,6 +737,7 @@ static void kick_trng(int ent_delay, ccsr_sec_t *sec)
 	/* put RNG4 into run mode */
 	sec_clrbits32(&rng->rtmctl, RTMCTL_PRGM);
 }
+#endif
 
 static int rng_init(uint8_t sec_idx, ccsr_sec_t *sec)
 {
@@ -670,6 +788,11 @@ static int rng_init(uint8_t sec_idx, ccsr_sec_t *sec)
 	 /* Enable RDB bit so that RNG works faster */
 	sec_setbits32(&sec->scfgr, SEC_SCFGR_RDBENABLE);
 
+	if (IS_ENABLED(CONFIG_SPL_BUILD) && IS_ENABLED(CONFIG_IMX8ULP)) {
+		/* AESA DPAR Mask is reseeded from RNG DRNG State Handle 0 */
+		sec_setbits32(&sec->scfgr, SEC_SCFGR_RANDDPAR);
+	}
+
 	return ret;
 }
 
@@ -685,8 +808,8 @@ int sec_init_idx(uint8_t sec_idx)
 	caam = dev_get_priv(caam_dev);
 #else
 	caam_st.sec = (void *)SEC_ADDR(sec_idx);
-	caam_st.regs = (struct jr_regs *)SEC_JR0_ADDR(sec_idx);
-	caam_st.jrid = 0;
+	caam_st.regs = (struct jr_regs *)SEC_JR_ADDR(sec_idx);
+	caam_st.jrid = JR_ID;
 	caam = &caam_st;
 #endif
 #if CONFIG_IS_ENABLED(OF_CONTROL)
@@ -698,7 +821,7 @@ int sec_init_idx(uint8_t sec_idx)
 
 	ccsr_sec_t *sec = caam->sec;
 	uint32_t mcr = sec_in32(&sec->mcfgr);
-#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_IMX8M)
+#if defined(CONFIG_SPL_BUILD) && (defined(CONFIG_IMX8M) || defined(CONFIG_IMX8ULP))
 	uint32_t jrdid_ms = 0;
 #endif
 #ifdef CONFIG_FSL_CORENET
@@ -730,7 +853,10 @@ int sec_init_idx(uint8_t sec_idx)
 	mcr |= (1 << MCFGR_PS_SHIFT);
 #endif
 	sec_out32(&sec->mcfgr, mcr);
-#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_IMX8M)
+#ifdef CONFIG_IMX8ULP
+	sec_reset();
+#endif
+#if defined(CONFIG_SPL_BUILD) && (defined(CONFIG_IMX8M) || defined(CONFIG_IMX8ULP))
 	jrdid_ms = JRDID_MS_TZ_OWN | JRDID_MS_PRIM_TZ | JRDID_MS_PRIM_DID;
 	sec_out32(&sec->jrliodnr[caam->jrid].ms, jrdid_ms);
 #endif
@@ -768,7 +894,7 @@ init:
 	}
 #if CONFIG_IS_ENABLED(OF_CONTROL)
 	if (ofnode_valid(scu_node)) {
-		if (IS_ENABLED(CONFIG_DM_RNG)) {
+		if (CONFIG_IS_ENABLED(DM_RNG)) {
 			ret = device_bind_driver(NULL, "caam-rng", "caam-rng", NULL);
 			if (ret)
 				printf("Couldn't bind rng driver (%d)\n", ret);
@@ -785,21 +911,24 @@ init:
 	pamu_enable();
 #endif
 
+#ifdef CONFIG_RNG_SELF_TEST
+	rng_self_test();
+#endif
 	if (get_rng_vid(caam->sec) >= 4) {
 		if (rng_init(sec_idx, caam->sec) < 0) {
 			printf("SEC%u:  RNG instantiation failed\n", sec_idx);
 			return -1;
 		}
 
-		if (IS_ENABLED(CONFIG_DM_RNG)) {
-			ret = device_bind_driver(NULL, "caam-rng", "caam-rng",
-						 NULL);
-			if (ret)
-				printf("Couldn't bind rng driver (%d)\n", ret);
-		}
-
 		printf("SEC%u:  RNG instantiated\n", sec_idx);
 	}
+#if CONFIG_IS_ENABLED(OF_CONTROL)
+	if (CONFIG_IS_ENABLED(DM_RNG)) {
+		ret = device_bind_driver(NULL, "caam-rng", "caam-rng", NULL);
+		if (ret)
+			printf("Couldn't bind rng driver (%d)\n", ret);
+	}
+#endif
 	return ret;
 }
 

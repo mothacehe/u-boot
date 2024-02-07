@@ -9,27 +9,53 @@
 #include <linux/sizes.h>
 #include <linux/stringify.h>
 #include <asm/arch/imx-regs.h>
+#include "imx_env.h"
 
 #define CFG_SYS_UBOOT_BASE	\
 	(QSPI0_AMBA_BASE + CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512)
 
-#ifdef CONFIG_SPL_BUILD
-#define CFG_MALLOC_F_ADDR		0x204D0000
+#ifdef CONFIG_AHAB_BOOT
+#define AHAB_ENV "sec_boot=yes\0"
+#else
+#define AHAB_ENV "sec_boot=no\0"
 #endif
 
 #ifdef CONFIG_DISTRO_DEFAULTS
 #define BOOT_TARGET_DEVICES(func) \
 	func(MMC, mmc, 0) \
 	func(MMC, mmc, 1) \
+	func(USB, usb, 0)
 
 #include <config_distro_bootcmd.h>
 #else
 #define BOOTENV
 #endif
 
+#define JH_ROOT_DTB    "imx93-11x11-evk-root.dtb"
+
+#define JAILHOUSE_ENV \
+	"jh_root_dtb=" JH_ROOT_DTB "\0" \
+	"jh_mmcboot=setenv fdtfile ${jh_root_dtb}; " \
+		    "setenv jh_clk clk_ignore_unused mem=1248MB kvm-arm.mode=nvhe; " \
+		    "if run loadimage; then run mmcboot;" \
+		    "else run jh_netboot; fi; \0" \
+	"jh_netboot=setenv fdtfile ${jh_root_dtb}; " \
+		    "setenv jh_clk clk_ignore_unused mem=1248MB kvm-arm.mode=nvhe; run netboot; \0 "
+
+#define CFG_MFG_ENV_SETTINGS \
+	CFG_MFG_ENV_SETTINGS_DEFAULT \
+	"initrd_addr=0x83800000\0" \
+	"initrd_high=0xffffffffffffffff\0" \
+	"emmc_dev=0\0"\
+	"sd_dev=1\0" \
+
 /* Initial environment variables */
 #define CFG_EXTRA_ENV_SETTINGS		\
+	JAILHOUSE_ENV \
+	CFG_MFG_ENV_SETTINGS \
 	BOOTENV \
+	AHAB_ENV \
+	"prepare_mcore=setenv mcore_clk clk-imx93.mcore_booted;\0" \
 	"scriptaddr=0x83500000\0" \
 	"kernel_addr_r=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
 	"image=Image\0" \
@@ -37,6 +63,7 @@
 	"console=ttyLP0,115200 earlycon\0" \
 	"fdt_addr_r=0x83000000\0"			\
 	"fdt_addr=0x83000000\0"			\
+	"fdt_high=0xffffffffffffffff\0"		\
 	"cntr_addr=0x98000000\0"			\
 	"cntr_file=os_cntr_signed.bin\0" \
 	"boot_fit=no\0" \
@@ -46,7 +73,7 @@
 	"mmcpart=1\0" \
 	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
 	"mmcautodetect=yes\0" \
-	"mmcargs=setenv bootargs ${jh_clk} console=${console} root=${mmcroot}\0 " \
+	"mmcargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} root=${mmcroot}\0 " \
 	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
 	"bootscript=echo Running bootscript from mmc ...; " \
 		"source\0" \
@@ -74,7 +101,7 @@
 				"fi; " \
 			"fi;" \
 		"fi;\0" \
-	"netargs=setenv bootargs ${jh_clk} console=${console} " \
+	"netargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} " \
 		"root=/dev/nfs " \
 		"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
 	"netboot=echo Booting from net ...; " \
@@ -136,6 +163,14 @@
 
 #if defined(CONFIG_CMD_NET)
 #define PHY_ANEG_TIMEOUT 20000
+#endif
+
+#ifdef CONFIG_IMX_MATTER_TRUSTY
+#define NS_ARCH_ARM64 1
+#endif
+
+#ifdef CONFIG_ANDROID_SUPPORT
+#include "imx93_evk_android.h"
 #endif
 
 #endif

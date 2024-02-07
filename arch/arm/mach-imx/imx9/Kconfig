@@ -19,6 +19,7 @@ config IMX93
 	bool
 	select IMX9
 	select ARMV8_SPL_EXCEPTION_VECTORS
+	select SYS_FSL_ERRATUM_ESDHC111
 
 config SYS_SOC
 	default "imx9"
@@ -27,13 +28,38 @@ choice
 	prompt  "NXP i.MX9 board select"
 	optional
 
+config TARGET_IMX93_14X14_EVK
+	bool "imx93_14x14_evk"
+	select IMX93
+
 config TARGET_IMX93_11X11_EVK
 	bool "imx93_11x11_evk"
 	select IMX93
 
+config TARGET_IMX93_9X9_QSB
+	bool "imx93_9x9_qsb"
+	select IMX93
+	select IMX9_LPDDR4X
+
+config TARGET_IMX91P_11X11_EVK
+	bool "imx91p_11x11_evk"
+	select IMX93
+
+config TARGET_IMX91P_9X9_QSB
+	bool "imx91p_9x9_qsb"
+	select IMX93
+	select IMX9_LPDDR4X
+
+config TARGET_IMX93_VAR_SOM
+	bool "imx93_var_som"
+	select IMX93
+	select IMX9_LPDDR4X
+
 endchoice
 
 source "board/freescale/imx93_evk/Kconfig"
+source "board/freescale/imx93_qsb/Kconfig"
+source "board/variscite/imx93_var_som/Kconfig"
 
 endif
 

@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Copyright (c) 2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright 2018 NXP
  */
 
 #ifndef __MX6_COMMON_H
@@ -21,4 +22,12 @@
 #include <asm/arch/imx-regs.h>
 #include <asm/mach-imx/gpio.h>
 
+/* NET PHY */
+#define PHY_ANEG_TIMEOUT 20000
+
+#ifdef CONFIG_IMX_OPTEE
+#define TEE_ENV "tee=yes\0"
+#else
+#define TEE_ENV "tee=no\0"
+#endif
 #endif

@@ -24,7 +24,13 @@
 
 #define ANATOP_BASE_ADDR    0x44480000UL
 
+#define USB1_BASE_ADDR		0x4c100000
+#define USB2_BASE_ADDR		0x4c200000
+
+#define USB_BASE_ADDR		USB1_BASE_ADDR
+
 #define BLK_CTRL_WAKEUPMIX_BASE_ADDR 0x42420000
+#define BLK_CTRL_NS_ANOMIX_BASE_ADDR  0x44210000
 #define BLK_CTRL_S_ANOMIX_BASE_ADDR  0x444f0000
 
 #define SRC_IPS_BASE_ADDR	(0x44460000)
@@ -34,6 +40,18 @@
 #define SRC_ML_RBASE		(SRC_IPS_BASE_ADDR + 0x1800)
 #define SRC_MEDIA_RBASE		(SRC_IPS_BASE_ADDR + 0x2400)
 #define SRC_M33P_RBASE		(SRC_IPS_BASE_ADDR + 0x2800)
+
+#define TCML_BASE_ADDR              (0x201E0000UL)
+#define TCML_BASE_MCORE_SEC_ADDR    (0x1FFE0000UL)
+#define TCML_BASE_MCORE_NSEC_ADDR   (0x0FFE0000UL)
+#define TCML_SIZE                   (0x20000U)
+#define TCMU_BASE_ADDR              (0x20200000UL)
+#define TCMU_BASE_MCORE_SEC_ADDR    (0x30000000UL)
+#define TCMU_BASE_MCORE_NSEC_ADDR   (0x20000000UL)
+#define TCMU_SIZE                   (0x20000U)
+
+#define FLEXSPI_AHB_ADDR            (0x28000000UL)
+#define FLEXSPI_AHB_SIZE            (0x8000000UL)
 
 #define SRC_MIX_SLICE_FUNC_STAT_PSW_STAT BIT(0)
 #define SRC_MIX_SLICE_FUNC_STAT_RST_STAT BIT(2)
@@ -234,6 +252,11 @@ struct src_mix_slice_regs {
 	u32 fsm_stat;
 	u32 func_stat;
 };
+
+bool is_usb_boot(void);
+void disconnect_from_pc(void);
+#define is_boot_from_usb  is_usb_boot
+
 #endif
 
 #endif

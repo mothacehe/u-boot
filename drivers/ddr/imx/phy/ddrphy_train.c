@@ -36,7 +36,8 @@ int ddr_cfg_phy(struct dram_timing_info *dram_timing)
 
 		/* load the dram training firmware image */
 		dwc_ddrphy_apb_wr(0xd0000, 0x0);
-		ddr_load_train_firmware(fsp_msg->fw_type);
+		ddr_load_train_firmware(fsp_msg->fw_type,
+					dram_timing->ddrphy_fw_offset);
 
 		/* load the frequency set point message block parameter */
 		dram_cfg = fsp_msg->fsp_cfg;
@@ -90,9 +91,6 @@ int ddr_cfg_phy(struct dram_timing_info *dram_timing)
 		dwc_ddrphy_apb_wr(dram_cfg->reg, dram_cfg->val);
 		dram_cfg++;
 	}
-
-	/* save the ddr PHY trained CSR in memory for low power use */
-	ddrphy_trained_csr_save(ddrphy_trained_csr, ddrphy_trained_csr_num);
 
 	return 0;
 }

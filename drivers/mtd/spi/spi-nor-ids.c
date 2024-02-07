@@ -63,6 +63,10 @@
  * old entries may be missing 4K flag.
  */
 const struct flash_info spi_nor_ids[] = {
+#ifdef CONFIG_SPI_FLASH_ADESTO		/* ADESTO */
+	/* Fix to 4 bytes addr width, except 0x03 read, others are using 4 bytes */
+	{ INFO("atxp032",	 0x43a700, 0, 64 * 1024,   64, SECT_4K | SPI_NOR_HAS_LOCK) .addr_width = 4, },
+#endif
 #ifdef CONFIG_SPI_FLASH_ATMEL		/* ATMEL */
 	/* Atmel -- some are (confusingly) marketed as "DataFlash" */
 	{ INFO("at26df321",	0x1f4700, 0, 64 * 1024, 64, SECT_4K) },
@@ -95,6 +99,11 @@ const struct flash_info spi_nor_ids[] = {
 	},
 	{
 		INFO("gd25q32", 0xc84016, 0, 64 * 1024,  64,
+			SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ |
+			SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB)
+	},
+	{
+		INFO("gd25lq16", 0xc86015, 0, 64 * 1024,  32,
 			SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ |
 			SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB)
 	},
@@ -313,7 +322,11 @@ const struct flash_info spi_nor_ids[] = {
 	{ INFO("mt25ql02g",   0x20ba22, 0, 64 * 1024, 4096, SECT_4K | USE_FSR | SPI_NOR_QUAD_READ | NO_CHIP_ERASE | SPI_NOR_4B_OPCODES) },
 #ifdef CONFIG_SPI_FLASH_MT35XU
 	{ INFO("mt35xl512aba", 0x2c5a1a, 0,  128 * 1024,  512, USE_FSR | SPI_NOR_OCTAL_READ | SPI_NOR_4B_OPCODES | SPI_NOR_OCTAL_DTR_READ) },
-	{ INFO("mt35xu512aba", 0x2c5b1a, 0,  128 * 1024,  512, USE_FSR | SPI_NOR_OCTAL_READ | SPI_NOR_4B_OPCODES | SPI_NOR_OCTAL_DTR_READ) },
+	{ INFO("mt35xu512aba", 0x2c5b1a, 0,  128 * 1024,  512, USE_FSR | SPI_NOR_OCTAL_READ | SPI_NOR_4B_OPCODES | SPI_NOR_OCTAL_DTR_READ | SPI_NOR_OCTAL_DTR_PP) },
+#else
+	/* for platforms that didn't enable DTR read */
+	{ INFO("mt35xl512aba", 0x2c5a1a, 0,  128 * 1024,  512, USE_FSR | SPI_NOR_OCTAL_READ | SPI_NOR_4B_OPCODES) },
+	{ INFO("mt35xu512aba", 0x2c5b1a, 0,  128 * 1024,  512, USE_FSR | SPI_NOR_OCTAL_READ | SPI_NOR_4B_OPCODES) },
 #endif /* CONFIG_SPI_FLASH_MT35XU */
 	{ INFO6("mt35xu01g",  0x2c5b1b, 0x104100, 128 * 1024,  1024, USE_FSR | SPI_NOR_OCTAL_READ | SPI_NOR_4B_OPCODES) },
 	{ INFO("mt35xu02g",  0x2c5b1c, 0, 128 * 1024,  2048, USE_FSR | SPI_NOR_OCTAL_READ | SPI_NOR_4B_OPCODES) },

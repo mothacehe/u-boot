@@ -23,6 +23,8 @@
 #include <linux/usb/composite.h>
 #include <linux/compiler.h>
 #include <g_dnl.h>
+#include <serial.h>
+#include <stdio_dev.h>
 
 #define FASTBOOT_INTERFACE_CLASS	0xff
 #define FASTBOOT_INTERFACE_SUB_CLASS	0x42
@@ -39,16 +41,24 @@
  * that expect bulk OUT requests to be divisible by maxpacket size.
  */
 
+typedef struct usb_req usb_req;
+struct usb_req {
+	struct usb_request *in_req;
+	usb_req *next;
+};
+
 struct f_fastboot {
 	struct usb_function usb_function;
 
 	/* IN/OUT EP's and corresponding requests */
 	struct usb_ep *in_ep, *out_ep;
 	struct usb_request *in_req, *out_req;
+
+	usb_req *front, *rear;
 };
 
 static char fb_ext_prop_name[] = "DeviceInterfaceGUID";
-static char fb_ext_prop_data[] = "{4866319A-F4D6-4374-93B9-DC2DEB361BA9}";
+static char fb_ext_prop_data[] = "{F72FE0D4-CBCB-407d-8814-9ED673D0DD6B}";
 
 static struct usb_os_desc_ext_prop fb_ext_prop = {
 	.type = 1,		/* NUL-terminated Unicode String (REG_SZ) */
@@ -194,7 +204,31 @@ static struct usb_gadget_strings *fastboot_strings[] = {
 	NULL,
 };
 
+#if CONFIG_IS_ENABLED(FASTBOOT_UUU_SUPPORT)
+extern struct stdio_dev g_fastboot_stdio;
+#endif
+
 static void rx_handler_command(struct usb_ep *ep, struct usb_request *req);
+
+static void fastboot_fifo_complete(struct usb_ep *ep, struct usb_request *req)
+{
+	int status = req->status;
+	usb_req *request;
+
+	if (!status) {
+		if (fastboot_func->front != NULL) {
+			request = fastboot_func->front;
+			fastboot_func->front = fastboot_func->front->next;
+			if (fastboot_func->front == NULL)
+				fastboot_func->rear = NULL;
+			usb_ep_free_request(ep, request->in_req);
+			free(request);
+		} else {
+			printf("fail free request\n");
+		}
+		return;
+	}
+}
 
 static void fastboot_complete(struct usb_ep *ep, struct usb_request *req)
 {
@@ -266,6 +300,10 @@ static int fastboot_bind(struct usb_configuration *c, struct usb_function *f)
 	if (s)
 		g_dnl_set_serialnumber((char *)s);
 
+#if CONFIG_IS_ENABLED(FASTBOOT_UUU_SUPPORT)
+	stdio_register(&g_fastboot_stdio);
+#endif
+
 	return 0;
 }
 
@@ -274,6 +312,14 @@ static void fastboot_unbind(struct usb_configuration *c, struct usb_function *f)
 	f->os_desc_table = NULL;
 	list_del(&fb_os_desc.ext_prop);
 	memset(fastboot_func, 0, sizeof(*fastboot_func));
+
+#if CONFIG_IS_ENABLED(FASTBOOT_UUU_SUPPORT) && CONFIG_IS_ENABLED(SYS_STDIO_DEREGISTER)
+	struct stdio_dev *dev;
+	dev = stdio_get_by_name("fastboot");
+	if (dev)
+		stdio_deregister_dev(dev, 1);
+#endif
+
 }
 
 static void fastboot_disable(struct usb_function *f)
@@ -399,10 +445,62 @@ static int fastboot_add(struct usb_configuration *c)
 }
 DECLARE_GADGET_BIND_CALLBACK(usb_dnl_fastboot, fastboot_add);
 
-static int fastboot_tx_write(const char *buffer, unsigned int buffer_size)
+int fastboot_tx_write_more_s(const void *buffer, unsigned int buffer_size)
+{
+	int ret = 0;
+
+	/* alloc usb request FIFO node */
+	usb_req *req = (usb_req *)malloc(sizeof(usb_req));
+	if (!req) {
+		printf("failed alloc usb req!\n");
+		return -ENOMEM;
+	}
+
+	/* usb request node FIFO enquene */
+	if (fastboot_func->front == NULL) {
+		fastboot_func->front = req;
+	}
+
+	if (fastboot_func->rear != NULL) {
+		fastboot_func->rear->next = req;
+	}
+	fastboot_func->rear = req;
+	req->next = NULL;
+
+	/* alloc in request for current node */
+	req->in_req = fastboot_start_ep(fastboot_func->in_ep);
+	if (!req->in_req) {
+		printf("failed alloc req in\n");
+		fastboot_disable(&(fastboot_func->usb_function));
+		return  -EINVAL;
+	}
+	req->in_req->complete = fastboot_fifo_complete;
+
+	memcpy(req->in_req->buf, buffer, buffer_size);
+	req->in_req->length = buffer_size;
+
+	ret = usb_ep_queue(fastboot_func->in_ep, req->in_req, 0);
+	if (ret) {
+		printf("Error %d on queue\n", ret);
+		return -EINVAL;
+	}
+
+	ret = 0;
+	return ret;
+}
+
+int fastboot_tx_write_more(const char *buffer)
+{
+	return fastboot_tx_write_more_s(buffer, strlen(buffer));
+}
+
+int fastboot_tx_write(const char *buffer, unsigned int buffer_size)
 {
 	struct usb_request *in_req = fastboot_func->in_req;
 	int ret;
+
+	if (!buffer_size)
+		return 0;
 
 	memcpy(in_req->buf, buffer, buffer_size);
 	in_req->length = buffer_size;
@@ -420,10 +518,18 @@ static int fastboot_tx_write_str(const char *buffer)
 	return fastboot_tx_write(buffer, strlen(buffer));
 }
 
+#ifdef CONFIG_PSCI_BOARD_REBOOT
+int do_board_reboot(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]);
+#endif
+
 static void compl_do_reset(struct usb_ep *ep, struct usb_request *req)
 {
 	g_dnl_unregister();
+#ifdef CONFIG_PSCI_BOARD_REBOOT
+	do_board_reboot(NULL, 0, 0, NULL);
+#else
 	do_reset(NULL, 0, 0, NULL);
+#endif
 }
 
 static unsigned int rx_bytes_expected(struct usb_ep *ep)
@@ -513,6 +619,10 @@ static void rx_handler_command(struct usb_ep *ep, struct usb_request *req)
 	char response[FASTBOOT_RESPONSE_LEN] = {0};
 	int cmd = -1;
 
+	/* init in request FIFO pointer */
+	fastboot_func->front = NULL;
+	fastboot_func->rear  = NULL;
+
 	if (req->status != 0 || req->length == 0)
 		return;
 
@@ -543,6 +653,9 @@ static void rx_handler_command(struct usb_ep *ep, struct usb_request *req)
 		case FASTBOOT_COMMAND_REBOOT_BOOTLOADER:
 		case FASTBOOT_COMMAND_REBOOT_FASTBOOTD:
 		case FASTBOOT_COMMAND_REBOOT_RECOVERY:
+#ifdef CONFIG_ANDROID_RECOVERY
+		case FASTBOOT_COMMAND_RECOVERY_FASTBOOT:
+#endif
 			fastboot_func->in_req->complete = compl_do_reset;
 			break;
 		case FASTBOOT_COMMAND_ACMD:

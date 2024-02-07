@@ -294,6 +294,10 @@ int misc_init_r(void);
 int checkboard(void);
 int show_board_info(void);
 
+#ifdef CONFIG_ANDROID_BOOT_IMAGE
+void get_reboot_reason(char *ret);
+#endif
+
 /**
  * board_get_usable_ram_top() - get uppermost address for U-Boot relocation
  *

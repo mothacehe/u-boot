@@ -113,8 +113,13 @@ static int imx8_power_domain_on(struct power_domain *power_domain)
 		return 0;
 
 	if (pdata->resource_id != SC_R_NONE) {
-		if (!sc_rm_is_resource_owned(-1, pdata->resource_id))
+		if (!sc_rm_is_resource_owned(-1, pdata->resource_id)) {
 			printf("%s [%d] not owned by curr partition\n", dev->name, pdata->resource_id);
+#if defined(CONFIG_TARGET_IMX8QM_MEK_A72_ONLY) || defined(CONFIG_TARGET_IMX8QM_MEK_A53_ONLY)
+			/* avoid failing probe, else some group of resources (gpios) may never work */
+			return 0;
+#endif
+		}
 
 		err = sc_pm_set_resource_power_mode(-1, pdata->resource_id,
 						    SC_PM_PW_MODE_ON);
@@ -189,7 +194,7 @@ static int imx8_power_domain_off_parentnodes(struct power_domain *power_domain)
 	struct imx8_power_domain_priv *ppriv;
 	struct imx8_power_domain_priv *child_ppriv;
 	struct imx8_power_domain_plat *pdata;
-	sc_err_t ret;
+	int ret;
 	struct power_domain parent_pd;
 
 	if (device_get_uclass_id(parent) == UCLASS_POWER_DOMAIN) {

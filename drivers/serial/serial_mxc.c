@@ -215,7 +215,7 @@ static void _mxc_serial_setbrg(struct mxc_uart *base, unsigned long clk,
 #error "define CFG_MXC_UART_BASE to use the MXC UART driver"
 #endif
 
-#define mxc_base	((struct mxc_uart *)CFG_MXC_UART_BASE)
+struct mxc_uart *mxc_base = ((struct mxc_uart *)CFG_MXC_UART_BASE);
 
 static void mxc_serial_setbrg(void)
 {
@@ -247,12 +247,27 @@ static void mxc_serial_putc(const char c)
 	writel(c, &mxc_base->txd);
 }
 
-/* Test whether a character is in the RX buffer */
+/*
+ * Test whether a character is in the RX buffer
+ */
+static int one_time_rx_line_always_low_workaround_needed = 1;
 static int mxc_serial_tstc(void)
 {
 	/* If receive fifo is empty, return false */
 	if (readl(&mxc_base->ts) & UTS_RXEMPTY)
 		return 0;
+
+	/* Empty RX FIFO if receiver is stuck because of RXD line being low */
+	if (one_time_rx_line_always_low_workaround_needed) {
+		one_time_rx_line_always_low_workaround_needed = 0;
+		if (!(readl(&mxc_base->sr2) & USR2_RDR)) {
+			while (!(readl(&mxc_base->ts) & UTS_RXEMPTY)) {
+				(void) readl(&mxc_base->rxd);
+			}
+			return 0;
+		}
+	}
+
 	return 1;
 }
 
