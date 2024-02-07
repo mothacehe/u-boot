@@ -53,6 +53,5 @@ Board-specific doc
    thead/index
    ti/index
    toradex/index
-   variscite/index
    xen/index
    xilinx/index

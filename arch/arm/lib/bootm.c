@@ -33,11 +33,17 @@
 #include <bootm.h>
 #include <vxworks.h>
 #include <asm/cache.h>
+#include <video_link.h>
 
 #ifdef CONFIG_ARMV7_NONSEC
 #include <asm/armv7.h>
 #endif
 #include <asm/setup.h>
+
+#ifdef CONFIG_IMX_TRUSTY_OS
+#include <trusty/hwcrypto.h>
+#include <trusty/libtipc.h>
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -66,6 +72,17 @@ static void announce_and_cleanup(int fake)
 	udc_disconnect();
 #endif
 
+#if defined(CONFIG_VIDEO_LINK)
+	video_link_shut_down();
+#endif
+
+#ifdef CONFIG_IMX_TRUSTY_OS
+	/* lock the boot state so linux can't use some hwcrypto commands. */
+	hwcrypto_lock_boot_state();
+	/* put ql-tipc to release resource for Linux */
+	trusty_ipc_shutdown();
+#endif
+
 	board_quiesce_devices();
 
 	printf("\nStarting kernel ...%s\n\n", fake ?
@@ -75,10 +92,12 @@ static void announce_and_cleanup(int fake)
 	 * This may be useful for last-stage operations, like cancelling
 	 * of DMA operation or releasing device internal buffers.
 	 */
+#ifndef CONFIG_POWER_DOMAIN
 	dm_remove_devices_flags(DM_REMOVE_ACTIVE_ALL | DM_REMOVE_NON_VITAL);
 
 	/* Remove all active vital devices next */
 	dm_remove_devices_flags(DM_REMOVE_ACTIVE_ALL);
+#endif
 
 	cleanup_before_linux();
 }

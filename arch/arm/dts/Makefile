@@ -126,7 +126,6 @@ dtb-$(CONFIG_ROCKCHIP_RK3308) += \
 dtb-$(CONFIG_ROCKCHIP_RK3328) += \
 	rk3328-evb.dtb \
 	rk3328-nanopi-r2c.dtb \
-	rk3328-nanopi-r2c-plus.dtb \
 	rk3328-nanopi-r2s.dtb \
 	rk3328-orangepi-r1-plus.dtb \
 	rk3328-orangepi-r1-plus-lts.dtb \
@@ -192,11 +191,6 @@ dtb-$(CONFIG_ROCKCHIP_RK3588) += \
 	rk3588-edgeble-neu6a-io.dtb \
 	rk3588-edgeble-neu6b-io.dtb \
 	rk3588-evb1-v10.dtb \
-	rk3588-nanopc-t6.dtb \
-	rk3588s-orangepi-5.dtb \
-	rk3588-orangepi-5-plus.dtb \
-	rk3588-quartzpro64.dtb \
-	rk3588-turing-rk1.dtb \
 	rk3588s-rock-5a.dtb \
 	rk3588-rock-5b.dtb
 
@@ -325,7 +319,6 @@ else
 dtb-$(CONFIG_ARCH_MVEBU) +=			\
 	armada-3720-db.dtb			\
 	armada-3720-espressobin.dtb		\
-	armada-3720-ripe-atlas.dtb		\
 	armada-3720-turris-mox.dtb		\
 	armada-3720-eDPU.dtb			\
 	armada-3720-uDPU.dtb			\
@@ -379,12 +372,6 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
 	zynq-cse-nand.dtb \
 	zynq-cse-nor.dtb \
 	zynq-cse-qspi-single.dtb \
-	zynq-cse-qspi-parallel.dtb \
-	zynq-cse-qspi-stacked.dtb \
-	zynq-cse-qspi-x1-single.dtb \
-	zynq-cse-qspi-x1-stacked.dtb \
-	zynq-cse-qspi-x2-single.dtb \
-	zynq-cse-qspi-x2-stacked.dtb \
 	zynq-dlc20-rev1.0.dtb \
 	zynq-microzed.dtb \
 	zynq-minized.dtb \
@@ -426,13 +413,6 @@ dtb-$(CONFIG_ARCH_ZYNQMP) += \
 	zynqmp-mini-emmc1.dtb			\
 	zynqmp-mini-nand.dtb			\
 	zynqmp-mini-qspi.dtb			\
-	zynqmp-mini-qspi-parallel.dtb		\
-	zynqmp-mini-qspi-single.dtb		\
-	zynqmp-mini-qspi-stacked.dtb		\
-	zynqmp-mini-qspi-x1-single.dtb		\
-	zynqmp-mini-qspi-x1-stacked.dtb		\
-	zynqmp-mini-qspi-x2-single.dtb		\
-	zynqmp-mini-qspi-x2-stacked.dtb		\
 	zynqmp-sc-revB.dtb			\
 	zynqmp-sc-revC.dtb			\
 	zynqmp-sc-vek280-revA.dtbo		\
@@ -483,27 +463,13 @@ dtb-$(CONFIG_ARCH_VERSAL) += \
 	versal-mini-emmc0.dtb \
 	versal-mini-emmc1.dtb \
 	versal-mini-ospi-single.dtb \
-	versal-mini-ospi-stacked.dtb \
-	versal-mini-qspi-parallel.dtb \
 	versal-mini-qspi-single.dtb \
-	versal-mini-qspi-stacked.dtb \
-	versal-mini-qspi-x1-single.dtb \
-	versal-mini-qspi-x1-stacked.dtb \
-	versal-mini-qspi-x2-single.dtb \
-	versal-mini-qspi-x2-stacked.dtb \
 	xilinx-versal-virt.dtb
 dtb-$(CONFIG_ARCH_VERSAL_NET) += \
 	versal-net-mini.dtb \
 	versal-net-mini-emmc.dtb \
 	versal-net-mini-ospi-single.dtb \
-	versal-net-mini-ospi-stacked.dtb \
 	versal-net-mini-qspi-single.dtb \
-	versal-net-mini-qspi-parallel.dtb \
-	versal-net-mini-qspi-stacked.dtb \
-	versal-net-mini-qspi-x1-single.dtb \
-	versal-net-mini-qspi-x1-stacked.dtb \
-	versal-net-mini-qspi-x2-single.dtb \
-	versal-net-mini-qspi-x2-stacked.dtb \
 	xilinx-versal-net-virt.dtb
 dtb-$(CONFIG_ARCH_ZYNQMP_R5) += \
 	zynqmp-r5.dtb
@@ -606,6 +572,8 @@ dtb-$(CONFIG_FSL_LSCH3) += fsl-ls2080a-qds.dtb \
 	fsl-lx2160a-qds-19-11-x.dtb \
 	fsl-lx2160a-qds-20-x-x.dtb \
 	fsl-lx2160a-qds-20-11-x.dtb \
+	fsl-lx2160a-qds-13-x-x.dtb \
+	fsl-lx2160a-qds-14-x-x.dtb \
 	fsl-lx2162a-qds.dtb\
 	fsl-lx2162a-qds-17-x.dtb\
 	fsl-lx2162a-qds-18-x.dtb\
@@ -723,7 +691,6 @@ dtb-$(CONFIG_MACH_SUN7I) += \
 	sun7i-a20-haoyu-marsboard.dtb \
 	sun7i-a20-hummingbird.dtb \
 	sun7i-a20-i12-tvbox.dtb \
-	sun7i-a20-icnova-a20-adb4006.dtb \
 	sun7i-a20-icnova-swac.dtb \
 	sun7i-a20-itead-ibox.dtb \
 	sun7i-a20-lamobo-r1.dtb \
@@ -837,8 +804,6 @@ dtb-$(CONFIG_MACH_SUN50I_H6) += \
 	sun50i-h6-tanix-tx6-mini.dtb
 dtb-$(CONFIG_MACH_SUN50I_H616) += \
 	sun50i-h616-orangepi-zero2.dtb \
-	sun50i-h618-orangepi-zero3.dtb \
-	sun50i-h618-transpeed-8k618-t.dtb \
 	sun50i-h616-x96-mate.dtb
 dtb-$(CONFIG_MACH_SUN50I) += \
 	sun50i-a64-amarula-relic.dtb \
@@ -928,13 +893,15 @@ dtb-y += \
 	imx6dl-udoo.dtb \
 	imx6dl-riotboard.dtb \
 	imx6dl-sabreauto.dtb \
+	imx6dl-sabreauto-ecspi.dtb \
+	imx6dl-sabreauto-gpmi-weim.dtb \
 	imx6dl-sabresd.dtb \
 	imx6dl-wandboard-revd1.dtb \
 	imx6s-dhcom-drc02.dtb
 
 endif
 
-ifneq ($(CONFIG_MX6Q)$(CONFIG_MX6QDL),)
+ifneq ($(CONFIG_MX6Q)$(CONFIG_MX6QDL)$(CONFIG_MX6QP),)
 dtb-y += \
 	imx6q-apalis-eval.dtb \
 	imx6q-bosch-acc.dtb \
@@ -979,11 +946,15 @@ dtb-y += \
 	imx6q-phytec-mira-rdk-nand.dtb \
 	imx6q-udoo.dtb \
 	imx6q-sabreauto.dtb \
+	imx6q-sabreauto-ecspi.dtb \
+	imx6q-sabreauto-gpmi-weim.dtb \
 	imx6q-sabrelite.dtb \
 	imx6q-sabresd.dtb \
 	imx6q-tbs2910.dtb \
 	imx6q-wandboard-revd1.dtb \
 	imx6qp-sabreauto.dtb \
+	imx6qp-sabreauto-ecspi.dtb \
+	imx6qp-sabreauto-gpmi-weim.dtb \
 	imx6qp-sabresd.dtb \
 	imx6qp-wandboard-revd1.dtb \
 
@@ -991,11 +962,22 @@ endif
 
 dtb-$(CONFIG_MX6SL) += imx6sl-evk.dtb
 
-dtb-$(CONFIG_MX6SLL) += imx6sll-evk.dtb
+dtb-$(CONFIG_MX6SLL) += imx6sll-evk.dtb \
+	imx6sll-lpddr2-val.dtb \
+	imx6sll-lpddr3-val.dtb \
+	imx6sll-lpddr3-val-ecspi.dtb
 
 dtb-$(CONFIG_MX6SX) += \
+	imx6sx-14x14-val.dtb \
+	imx6sx-17x17-val.dtb \
+	imx6sx-17x17-val-ecspi.dtb \
+	imx6sx-17x17-val-gpmi-weim.dtb \
+	imx6sx-19x19-val.dtb \
+	imx6sx-19x19-val-ecspi.dtb \
+	imx6sx-19x19-val-gpmi-weim.dtb \
 	imx6sx-sabreauto.dtb \
 	imx6sx-sdb.dtb \
+	imx6sx-sdb-emmc.dtb \
 	imx6sx-softing-vining-2000.dtb \
 	imx6sx-udoo-neo-basic.dtb \
 	imx6sx-udoo-neo-extended.dtb \
@@ -1006,8 +988,13 @@ dtb-$(CONFIG_MX6UL) += \
 	imx6ul-isiot-emmc.dtb \
 	imx6ul-isiot-nand.dtb \
 	imx6ul-opos6uldev.dtb \
+	imx6ul-14x14-ddr3-val.dtb \
+	imx6ul-14x14-ddr3-val-emmc.dtb \
+	imx6ul-14x14-ddr3-val-gpmi-weim.dtb \
+	imx6ul-14x14-lpddr2-val.dtb \
 	imx6ul-14x14-evk.dtb \
-	imx6ul-9x9-evk.dtb \
+	imx6ul-14x14-evk-emmc.dtb \
+	imx6ul-14x14-evk-gpmi-weim.dtb \
 	imx6ul-9x9-evk.dtb \
 	imx6ul-liteboard.dtb \
 	imx6ul-phytec-segin-ff-rdk-nand.dtb \
@@ -1017,7 +1004,15 @@ dtb-$(CONFIG_MX6UL) += \
 	imx6ull-kontron-bl.dtb
 
 dtb-$(CONFIG_MX6ULL) += \
+	imx6ull-14x14-ddr3-val.dtb \
+	imx6ull-14x14-ddr3-val-epdc.dtb \
+	imx6ull-14x14-ddr3-val-emmc.dtb \
+	imx6ull-14x14-ddr3-val-gpmi-weim.dtb \
+	imx6ull-14x14-ddr3-val-tsc.dtb \
 	imx6ull-14x14-evk.dtb \
+	imx6ull-14x14-evk-emmc.dtb \
+	imx6ull-14x14-evk-gpmi-weim.dtb \
+	imx6ull-9x9-evk.dtb \
 	imx6ull-colibri-emmc-eval-v3.dtb \
 	imx6ull-colibri-eval-v3.dtb \
 	imx6ull-myir-mys-6ulx-eval.dtb \
@@ -1026,7 +1021,9 @@ dtb-$(CONFIG_MX6ULL) += \
 	imx6ull-dart-6ul.dtb \
 	imx6ull-somlabs-visionsom.dtb \
 	imx6ulz-bsh-smm-m2.dtb \
-	imx6ulz-14x14-evk.dtb
+	imx6ulz-14x14-evk.dtb \
+	imx6ulz-14x14-evk-emmc.dtb \
+	imx6ulz-14x14-evk-gpmi-weim.dtb
 
 dtb-$(CONFIG_ARCH_MX6) += \
 	imx6q-apalis-eval.dtb \
@@ -1040,6 +1037,9 @@ dtb-$(CONFIG_EV_IMX280_NANO_X_MB) += \
 
 dtb-$(CONFIG_MX7) += imx7d-sdb.dtb \
 	imx7d-sdb-qspi.dtb \
+	imx7d-sdb-epdc.dtb \
+	imx7d-sdb-gpmi-weim.dtb \
+	imx7d-sdb-reva.dtb \
 	imx7-cm.dtb \
 	imx7d-colibri-emmc-eval-v3.dtb \
 	imx7d-colibri-eval-v3.dtb \
@@ -1047,39 +1047,76 @@ dtb-$(CONFIG_MX7) += imx7d-sdb.dtb \
 	imx7d-meerkat96.dtb \
 	imx7d-pico-pi.dtb \
 	imx7d-pico-hobbit.dtb \
-	imx7d-smegw01.dtb
+	imx7d-smegw01.dtb \
+	imx7d-12x12-lpddr3-val.dtb \
+	imx7d-12x12-lpddr3-val-ecspi.dtb \
+	imx7d-12x12-lpddr3-val-qspi.dtb \
+	imx7d-12x12-ddr3-val.dtb \
+	imx7d-19x19-ddr3-val.dtb \
+	imx7d-19x19-lpddr2-val.dtb \
+	imx7d-19x19-lpddr3-val.dtb
 
 dtb-$(CONFIG_ARCH_MX7ULP) += imx7ulp-com.dtb \
-	imx7ulp-evk.dtb
+	imx7ulp-10x10-val.dtb \
+	imx7ulp-14x14-val.dtb \
+	imx7ulp-evk.dtb \
+	imx7ulp-evk-emmc.dtb \
+	imx7ulp-evk-qspi.dtb
 
 dtb-$(CONFIG_ARCH_HIGHBANK) += highbank.dtb
 
 dtb-$(CONFIG_ARCH_IMX8) += \
 	fsl-imx8qm-apalis.dtb \
 	fsl-imx8qm-mek.dtb \
+	fsl-imx8qm-ddr4-val.dtb \
+	fsl-imx8qm-lpddr4-val.dtb \
+	fsl-imx8qm-mek-cockpit-a53.dtb \
+	fsl-imx8qm-mek-cockpit-a72.dtb \
+	fsl-imx8qm-mek-xen.dtb \
 	imx8qm-cgtqmx8.dtb \
 	imx8qm-dmsse20-a1.dtb \
 	imx8qm-rom7720-a1.dtb \
+	imx8qm-var-som-symphony.dtb \
+	imx8qm-var-spear-sp8customboard.dtb \
 	fsl-imx8qxp-ai_ml.dtb \
 	fsl-imx8qxp-colibri.dtb \
 	fsl-imx8qxp-mek.dtb \
+	fsl-imx8qxp-lpddr4-val.dtb \
+	fsl-imx8qxp-lpddr4-val-gpmi-nand.dtb \
+	fsl-imx8qxp-17x17-val.dtb \
+	imx8qxp-var-som-symphony.dtb \
+	fsl-imx8dx-17x17-val.dtb \
+	fsl-imx8dx-mek.dtb \
+	fsl-imx8dxl-phantom-mek.dtb \
+	fsl-imx8dxl-evk.dtb \
+	fsl-imx8dxl-evk-lcdif.dtb \
+	fsl-imx8dxl-ddr3l-evk.dtb \
 	imx8-deneb.dtb \
 	imx8-giedi.dtb
 
 dtb-$(CONFIG_ARCH_IMX8ULP) += \
-	imx8ulp-evk.dtb
+	imx8ulp-evk.dtb \
+	imx8ulp-evk-i3c.dtb \
+	imx8ulp-9x9-evk.dtb \
+	imx8ulp-9x9-evk-i3c.dtb \
+	imx8ulp-watch.dtb
 
 dtb-$(CONFIG_ARCH_IMX8M) += \
 	imx8mm-data-modul-edm-sbc.dtb \
+	imx8mm-ddr4-evk.dtb \
+	imx8mm-ddr4-ab2.dtb \
+	imx8mm-ddr3l-val.dtb \
+	imx8mm-ddr4-val.dtb \
 	imx8mm-evk.dtb \
+	imx8mm-ab2.dtb \
 	imx8mm-icore-mx8mm-ctouch2.dtb \
 	imx8mm-icore-mx8mm-edimm2.2.dtb \
 	imx8mm-kontron-bl.dtb \
 	imx8mm-kontron-bl-osm-s.dtb \
 	imx8mm-mx8menlo.dtb \
 	imx8mm-phg.dtb \
-	imx8mm-phyboard-polis-rdk.dtb \
-	imx8mm-phygate-tauri-l.dtb \
+	imx8mm-var-dart-customboard.dtb \
+	imx8mm-var-som-symphony.dtb \
 	imx8mm-venice.dtb \
 	imx8mm-venice-gw71xx-0x.dtb \
 	imx8mm-venice-gw72xx-0x.dtb \
@@ -1090,14 +1127,20 @@ dtb-$(CONFIG_ARCH_IMX8M) += \
 	imx8mm-venice-gw7904.dtb \
 	imx8mm-venice-gw7905-0x.dtb \
 	imx8mm-verdin-wifi-dev.dtb \
+	phycore-imx8mm.dtb \
 	imx8mn-bsh-smm-s2.dtb \
 	imx8mn-bsh-smm-s2pro.dtb \
+	imx8mn-ddr3l-evk.dtb \
 	imx8mn-ddr4-evk.dtb \
+	imx8mn-ddr4-ab2.dtb \
 	imx8mq-cm.dtb \
 	imx8mn-evk.dtb \
+	imx8mn-ab2.dtb \
 	imx8mn-var-som-symphony.dtb \
 	imx8mn-venice.dtb \
 	imx8mn-venice-gw7902.dtb \
+	imx8mq-ddr3l-val.dtb \
+	imx8mq-ddr4-val.dtb \
 	imx8mq-evk.dtb \
 	imx8mm-beacon-kit.dtb \
 	imx8mn-beacon-kit.dtb \
@@ -1109,10 +1152,10 @@ dtb-$(CONFIG_ARCH_IMX8M) += \
 	imx8mp-dhcom-som-overlay-eth1xfast.dtbo \
 	imx8mp-dhcom-som-overlay-eth2xfast.dtbo \
 	imx8mp-dhcom-pdk-overlay-eth2xfast.dtbo \
-	imx8mp-debix-model-a.dtb \
 	imx8mp-dhcom-pdk2.dtb \
 	imx8mp-dhcom-pdk3.dtb \
 	imx8mp-dhcom-pdk3-overlay-rev100.dtbo \
+	imx8mp-ddr4-evk.dtb \
 	imx8mp-evk.dtb \
 	imx8mp-icore-mx8mp-edimm2.2.dtb \
 	imx8mp-msc-sm2s.dtb \
@@ -1124,12 +1167,14 @@ dtb-$(CONFIG_ARCH_IMX8M) += \
 	imx8mp-venice-gw74xx.dtb \
 	imx8mp-venice-gw7905-2x.dtb \
 	imx8mp-verdin-wifi-dev.dtb \
+	imx8mp-var-dart-dt8mcustomboard.dtb \
+	imx8mp-var-dart-dt8mcustomboard-legacy.dtb \
+	imx8mp-var-som-symphony.dtb \
 	imx8mq-pico-pi.dtb \
 	imx8mq-kontron-pitx-imx8m.dtb \
 	imx8mq-librem5-r4.dtb
 
 dtb-$(CONFIG_ARCH_IMX9) += \
-	imx93-11x11-evk.dtb \
 	imx93-var-som-symphony.dtb
 
 dtb-$(CONFIG_ARCH_IMXRT) += imxrt1050-evk.dtb \
@@ -1364,10 +1409,10 @@ dtb-$(CONFIG_ASPEED_AST2600) += ast2600-evb.dtb
 
 dtb-$(CONFIG_ARCH_STI) += stih410-b2260.dtb
 
-dtb-$(CONFIG_STM32MP13X) += \
+dtb-$(CONFIG_STM32MP13x) += \
 	stm32mp135f-dk.dtb
 
-dtb-$(CONFIG_STM32MP15X) += \
+dtb-$(CONFIG_STM32MP15x) += \
 	stm32mp157a-dk1.dtb \
 	stm32mp157a-dk1-scmi.dtb \
 	stm32mp157a-icore-stm32mp1-ctouch2.dtb \
@@ -1388,9 +1433,6 @@ dtb-$(CONFIG_STM32MP15X) += \
 	stm32mp15xx-dhcor-drc-compact.dtb \
 	stm32mp15xx-dhcor-testbench.dtb
 
-dtb-$(CONFIG_STM32MP25X) += \
-	stm32mp257f-ev1.dtb
-
 dtb-$(CONFIG_SOC_K3_AM654) += \
 	k3-am654-base-board.dtb \
 	k3-am654-r5-base-board.dtb \
@@ -1407,10 +1449,7 @@ dtb-$(CONFIG_SOC_K3_J721E) += k3-j721e-common-proc-board.dtb \
 			      k3-j7200-common-proc-board.dtb \
 			      k3-j7200-r5-common-proc-board.dtb \
 			      k3-j721e-sk.dtb \
-			      k3-j721e-r5-sk.dtb \
-			      k3-j721e-beagleboneai64.dtb \
-			      k3-j721e-r5-beagleboneai64.dtb
-
+			      k3-j721e-r5-sk.dtb
 dtb-$(CONFIG_SOC_K3_J721S2) += k3-am68-sk-base-board.dtb\
 			       k3-am68-sk-r5-base-board.dtb\
 			       k3-j721s2-common-proc-board.dtb\
@@ -1425,9 +1464,7 @@ dtb-$(CONFIG_SOC_K3_AM625) += k3-am625-sk.dtb \
 			      k3-am625-beagleplay.dtb \
 			      k3-am625-r5-beagleplay.dtb \
 			      k3-am625-verdin-wifi-dev.dtb \
-			      k3-am625-verdin-r5.dtb \
-			      k3-am625-phyboard-lyra-rdk.dtb \
-			      k3-am625-r5-phycore-som-2gb.dtb
+			      k3-am625-verdin-r5.dtb
 
 dtb-$(CONFIG_SOC_K3_AM62A7) += k3-am62a7-sk.dtb \
 			      k3-am62a7-r5-sk.dtb
@@ -1483,7 +1520,6 @@ dtb-$(CONFIG_TARGET_TOTAL_COMPUTE) += total_compute.dtb
 
 dtb-$(CONFIG_TARGET_DURIAN) += phytium-durian.dtb
 dtb-$(CONFIG_TARGET_POMELO) += phytium-pomelo.dtb
-dtb-$(CONFIG_TARGET_PE2201) += phytium-pe2201.dtb
 
 dtb-$(CONFIG_TARGET_PRESIDIO_ASIC) += ca-presidio-engboard.dtb
 
@@ -1524,8 +1560,6 @@ targets += $(dtb-y)
 
 # Add any required device tree compiler flags here
 DTC_FLAGS += -a 0x8
-
-DTC_FLAGS_imx8mp-dhcom-pdk3-overlay-rev100 += -Wno-avoid_default_addr_size -Wno-reg_format
 
 PHONY += dtbs
 dtbs: $(addprefix $(obj)/, $(dtb-y))

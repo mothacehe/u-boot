@@ -59,13 +59,18 @@ obj-$(CONFIG_POWER_PFUZE100)	+= pfuze.o
 endif
 obj-$(CONFIG_DM_PMIC_PFUZE100)	+= pfuze.o
 obj-$(CONFIG_POWER_MC34VR500)	+= mc34vr500.o
-ifneq (,$(filter $(SOC), imx8ulp imx9))
+ifneq (,$(filter $(SOC), mx6 mx7 mx7ulp imx8 imx8m imx8ulp imx9))
 obj-y				+= mmc.o
+endif
+obj-$(CONFIG_MXC_EPDC)		+= epdc_setup.o
+ifdef CONFIG_FSL_FASTBOOT
+obj-${CONFIG_ANDROID_RECOVERY} += recovery_keypad.o
 endif
 
 obj-$(CONFIG_LS102XA_STREAM_ID)	+= ls102xa_stream_id.o
 
 obj-$(CONFIG_EMC2305)              += emc2305.o
+obj-$(CONFIG_QSFP_EEPROM)	+= qsfp_eeprom.o
 
 # deal with common files for P-series corenet based devices
 obj-$(CONFIG_TARGET_P2041RDB)	+= p_corenet/
@@ -79,5 +84,9 @@ ifdef CONFIG_NXP_ESBC
 obj-$(CONFIG_CMD_ESBC_VALIDATE) += fsl_validate.o cmd_esbc_validate.o
 endif
 obj-$(CONFIG_CHAIN_OF_TRUST) += fsl_chain_of_trust.o
+
+ifndef CONFIG_SPL_BUILD
+obj-$(CONFIG_USB_TCPC) += tcpc.o
+endif
 
 endif

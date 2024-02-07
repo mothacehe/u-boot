@@ -1,6 +1,6 @@
 #
 # Copyright 2022 NXP
-# Copyright 2023 Variscite Ltd.
+# Copyright 2023-2024 Variscite Ltd.
 #
 # SPDX-License-Identifier:      GPL-2.0+
 #
@@ -14,4 +14,5 @@ obj-$(CONFIG_TARGET_IMX93_VAR_SOM) += lpddr4x_timing.o
 else
 obj-y += ../common/eth.o
 obj-y += ../common/mmc.o
+obj-$(CONFIG_EXTCON_PTN5150) += ../common/extcon-ptn5150.o
 endif

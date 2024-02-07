@@ -18,7 +18,7 @@
 #include <dm/uclass.h>
 
 #include "../common/imx9_eeprom.h"
-#include "../common/eth.h"
+#include "../common/extcon-ptn5150.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -27,10 +27,12 @@ DECLARE_GLOBAL_DATA_PTR;
 #define UART_PAD_CTRL	(PAD_CTL_DSE(6) | PAD_CTL_FSEL2)
 #define WDOG_PAD_CTRL	(PAD_CTL_DSE(6) | PAD_CTL_ODE | PAD_CTL_PUE | PAD_CTL_PE)
 
-static const iomux_v3_cfg_t uart_pads[] = {
+static iomux_v3_cfg_t const uart_pads[] = {
 	MX93_PAD_UART1_RXD__LPUART1_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
 	MX93_PAD_UART1_TXD__LPUART1_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
 };
+
+int var_setup_mac(struct var_eeprom *eeprom);
 
 int board_early_init_f(void)
 {
@@ -44,7 +46,6 @@ int board_early_init_f(void)
 int board_phys_sdram_size(phys_size_t *size)
 {
 	struct var_eeprom *ep = VAR_EEPROM_DATA;
-
 	var_eeprom_get_dram_size(ep, size);
 	return 0;
 }
@@ -70,11 +71,25 @@ static int setup_eqos(void)
 	return set_clk_eqos(ENET_125MHZ);
 }
 
+#ifdef CONFIG_EXTCON_PTN5150
+static struct extcon_ptn5150 usb_ptn5150;
+int board_ehci_usb_phy_mode(struct udevice *dev)
+{
+	int usb_phy_mode = extcon_ptn5150_phy_mode(&usb_ptn5150);
+
+	/* Default to host mode if not connected */
+	if (usb_phy_mode < 0) {
+		printf("Defaulting to USB Host");
+		usb_phy_mode = USB_INIT_HOST;
+	}
+
+	return usb_phy_mode;
+}
+#endif
+
 int board_init(void)
 {
-	set_clk_enet(ENET_125MHZ);
-
-	if (CONFIG_IS_ENABLED(DWC_ETH_QOS))
+	if (IS_ENABLED(CONFIG_DWC_ETH_QOS))
 		setup_eqos();
 
 	return 0;
@@ -84,43 +99,52 @@ int board_init(void)
 
 int board_late_init(void)
 {
-	int ret;
 	struct var_eeprom *ep = VAR_EEPROM_DATA;
 	char sdram_size_str[SDRAM_SIZE_STR_LEN];
 	struct var_carrier_eeprom carrier_eeprom;
 	char carrier_rev[CARRIER_REV_LEN] = {0};
 	char som_rev[CARRIER_REV_LEN] = {0};
 
+#ifdef CONFIG_EXTCON_PTN5150
+		extcon_ptn5150_setup(&usb_ptn5150);
+#endif
+
 	var_setup_mac(ep);
 	var_eeprom_print_prod_info(ep);
 
+	/* ENV Variables */
+
 	/* SDRAM ENV */
 	snprintf(sdram_size_str, SDRAM_SIZE_STR_LEN, "%d",
-		 (int)(gd->ram_size / 1024 / 1024));
+		(int) (gd->ram_size / 1024 / 1024));
 	env_set("sdram_size", sdram_size_str);
 
 	/* Carrier Board ENV */
-	ret = var_carrier_eeprom_read(VAR_CARRIER_EEPROM_I2C_NAME,
-				      CARRIER_EEPROM_ADDR, &carrier_eeprom);
-	if (!ret) {
-		var_carrier_eeprom_get_revision(&carrier_eeprom, carrier_rev,
-						sizeof(carrier_rev));
-		env_set("carrier_rev", carrier_rev);
-	}
+	var_carrier_eeprom_read(VAR_CARRIER_EEPROM_I2C_NAME, CARRIER_EEPROM_ADDR, &carrier_eeprom);
+	var_carrier_eeprom_get_revision(&carrier_eeprom, carrier_rev, sizeof(carrier_rev));
+	env_set("carrier_rev", carrier_rev);
+
+	/* SoM Features */
+	if (ep->features & VAR_EEPROM_F_WBE)
+		env_set("som_has_wbe", "1");
+	else
+		env_set("som_has_wbe", "0");
 
 	/* SoM Rev ENV */
-	snprintf(som_rev, CARRIER_REV_LEN, "som_rev1%d", ep->somrev);
+	snprintf(som_rev, CARRIER_REV_LEN, "%ld.%ld", SOMREV_MAJOR(ep->somrev), SOMREV_MINOR(ep->somrev));
 	env_set("som_rev", som_rev);
 
-	if (IS_ENABLED(CONFIG_ENV_IS_IN_MMC))
-		board_late_mmc_env_init();
+#ifdef CONFIG_ENV_IS_IN_MMC
+	board_late_mmc_env_init();
+#endif
 
 	env_set("sec_boot", "no");
-	if (IS_ENABLED(CONFIG_AHAB_BOOT))
-		env_set("sec_boot", "yes");
+#ifdef CONFIG_AHAB_BOOT
+	env_set("sec_boot", "yes");
+#endif
 
-	if (IS_ENABLED(CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG))
-		env_set("board_name", "VAR-SOM-MX93");
-
+#ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
+	env_set("board_name", "VAR-SOM-MX93");
+#endif
 	return 0;
 }

@@ -50,6 +50,20 @@ enum {
 	FASTBOOT_COMMAND_OEM_CONSOLE,
 	FASTBOOT_COMMAND_ACMD,
 	FASTBOOT_COMMAND_UCMD,
+	FASTBOOT_COMMAND_UPLOAD,
+	FASTBOOT_COMMAND_GETSTAGED,
+#if defined(CONFIG_FASTBOOT_LOCK) || defined(CONFIG_IMX_MATTER_TRUSTY)
+	FASTBOOT_COMMAND_FLASHING,
+	FASTBOOT_COMMAND_OEM,
+#endif
+	FASTBOOT_COMMAND_SETACTIVE,
+	FASTBOOT_COMMAND_STAGE,
+#ifdef CONFIG_ANDROID_RECOVERY
+	FASTBOOT_COMMAND_RECOVERY_FASTBOOT,
+#endif
+#ifdef CONFIG_VIRTUAL_AB_SUPPORT
+	FASTBOOT_COMMAND_SNAPSHOT_UPDATE,
+#endif
 	FASTBOOT_COMMAND_COUNT
 };
 
@@ -192,4 +206,9 @@ void fastboot_data_complete(char *response);
 void fastboot_multiresponse(int cmd, char *response);
 
 void fastboot_acmd_complete(void);
+
+int fastboot_tx_write_more(const char *buffer);
+int fastboot_tx_write_more_s(const void *buffer, unsigned int buffer_size);
+int fastboot_tx_write(const char *buffer, unsigned int buffer_size);
+
 #endif /* _FASTBOOT_H_ */

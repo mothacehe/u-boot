@@ -27,12 +27,22 @@
 #error Neither CONFIG_SYS_FSL_SEC_LE nor CONFIG_SYS_FSL_SEC_BE is defined
 #endif
 
+#define BLOB_OVERHEAD		(32 + 16)
 #define BLOB_SIZE(x)		((x) + 32 + 16) /* Blob buffer size */
+#define AES256_KEY_SZ		32
+
+#define NONCE_SIZE		6
+#define ICV_SIZE		6
+#define CCM_OVERHEAD		(NONCE_SIZE + ICV_SIZE)
+#define TAG_SIZE		20
+#define MAX_BLOB_SIZE		(AES256_KEY_SZ + CCM_OVERHEAD +\
+				BLOB_OVERHEAD + TAG_SIZE)
 
 /* Security Engine Block (MS = Most Sig., LS = Least Sig.) */
 #if CONFIG_SYS_FSL_SEC_COMPAT >= 4
 /* RNG4 TRNG test registers */
 struct rng4tst {
+#define RTMCTL_ACC  0x20
 #define RTMCTL_PRGM 0x00010000	/* 1 -> program mode, 0 -> run mode */
 #define RTMCTL_SAMP_MODE_VON_NEUMANN_ES_SC     0 /* use von Neumann data in
 						    both entropy shifter and
@@ -192,6 +202,7 @@ typedef struct ccsr_sec {
 #define SEC_SECVID_MS_MAJ_REV_SHIFT	8
 #define SEC_CCBVID_ERA_MASK		0xff000000
 #define SEC_CCBVID_ERA_SHIFT		24
+#define SEC_SCFGR_RANDDPAR		0x00000100
 #define SEC_SCFGR_RDBENABLE		0x00000400
 #define SEC_SCFGR_VIRT_EN		0x00008000
 #define SEC_CHAVID_LS_RNG_SHIFT		16
@@ -200,7 +211,8 @@ typedef struct ccsr_sec {
 struct jr_regs {
 #if defined(CONFIG_SYS_FSL_SEC_LE) && \
 	!(defined(CONFIG_MX6) || defined(CONFIG_MX7) || \
-	  defined(CONFIG_MX7ULP) || defined(CONFIG_IMX8M) || defined(CONFIG_IMX8))
+	  defined(CONFIG_MX7ULP) || defined(CONFIG_IMX8M) || defined(CONFIG_IMX8) || \
+	  defined(CONFIG_IMX8ULP))
 	u32 irba_l;
 	u32 irba_h;
 #else
@@ -215,7 +227,8 @@ struct jr_regs {
 	u32 irja;
 #if defined(CONFIG_SYS_FSL_SEC_LE) && \
 	!(defined(CONFIG_MX6) || defined(CONFIG_MX7) || \
-	  defined(CONFIG_MX7ULP) || defined(CONFIG_IMX8M) || defined(CONFIG_IMX8))
+	  defined(CONFIG_MX7ULP) || defined(CONFIG_IMX8M) || defined(CONFIG_IMX8) || \
+	  defined(CONFIG_IMX8ULP))
 	u32 orba_l;
 	u32 orba_h;
 #else
@@ -249,7 +262,8 @@ struct jr_regs {
 struct sg_entry {
 #if defined(CONFIG_SYS_FSL_SEC_LE) && \
 	!(defined(CONFIG_MX6) || defined(CONFIG_MX7) || \
-	  defined(CONFIG_MX7ULP) || defined(CONFIG_IMX8M) || defined(CONFIG_IMX8))
+	  defined(CONFIG_MX7ULP) || defined(CONFIG_IMX8M) || defined(CONFIG_IMX8) || \
+	  defined(CONFIG_IMX8ULP))
 	uint32_t addr_lo;	/* Memory Address - lo */
 	uint32_t addr_hi;	/* Memory Address of start of buffer - hi */
 #else
@@ -269,7 +283,8 @@ struct sg_entry {
 };
 
 #if defined(CONFIG_MX6) || defined(CONFIG_MX7) || \
-	defined(CONFIG_MX7ULP) || defined(CONFIG_IMX8M) || defined(CONFIG_IMX8)
+	 defined(CONFIG_MX7ULP) || defined(CONFIG_IMX8M) || defined(CONFIG_IMX8) || \
+	 defined(CONFIG_IMX8ULP)
 /* Job Ring Base Address */
 #define JR_BASE_ADDR(x) (CFG_SYS_FSL_SEC_ADDR + 0x1000 * (x + 1))
 /* Secure Memory Offset varies accross versions */
@@ -380,6 +395,46 @@ int sec_init_idx(uint8_t);
 int sec_init(void);
 
 u8 caam_get_era(void);
+
+/**
+ * blob_decap() - Decapsulate the data from a blob
+ * @key_mod:    - Key modifier address
+ * @src:        - Source address (blob)
+ * @dst:        - Destination address (data)
+ * @len:        - Size of decapsulated data
+ * @keycolor    - Determines if the source data is covered (black key) or
+ *                plaintext.
+ *
+ * Note: Start and end of the key_mod, src and dst buffers have to be aligned to
+ * the cache line size (ARCH_DMA_MINALIGN) for the CAAM operation to succeed.
+ *
+ * Returns zero on success, negative on error.
+ */
+int blob_decap(u8 *key_mod, u8 *src, u8 *dst, u32 len, u8 keycolor);
+
+/**
+ * blob_encap() - Encapsulate the data as a blob
+ * @key_mod:    - Key modifier address
+ * @src:        - Source address (data)
+ * @dst:        - Destination address (blob)
+ * @len:        - Size of data to be encapsulated
+ * @keycolor    - Determines if the source data is covered (black key) or
+ *                plaintext.
+ *
+ * Note: Start and end of the key_mod, src and dst buffers have to be aligned to
+ * the cache line size (ARCH_DMA_MINALIGN) for the CAAM operation to succeed.
+ *
+ * Returns zero on success, negative on error.
+ */
+int blob_encap(u8 *key_mod, u8 *src, u8 *dst, u32 len, u8 keycolor);
+
+int derive_blob_kek(u8 *bkek_buf, u8 *key_mod, u32 key_sz);
+
+int hwrng_generate(u8 *dst, u32 len);
+
+int aesecb_decrypt(u8 *key, u32 key_len, u8 *src, u8 *dst, u32 len);
+
+int tag_black_obj(u8 *black_obj, size_t black_obj_len, size_t key_len, size_t black_max_len);
 #endif
 
 #endif /* __FSL_SEC_H */
